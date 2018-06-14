@@ -23,8 +23,6 @@ size(data_raw)
 data_raw = data_raw.*info.header.bitVolts;
 fs = info.header.sampleRate;
 
-%data_raw=data_raw(1:30000,:); % cut away some data for faster testing
-
 %% plot
 
 plotlim=50000;
@@ -36,25 +34,26 @@ plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)');
 
 %% filter exercise 1: change freq band
 
-figure;
+
 [b1,a1] = butter(1, [300 6000]/(fs/2),'bandpass'); % filter 1 (normalize bp freq. to nyquist freq.)
 data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); % apply filter 1 
 plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');
 
-
+figure;
 [b2,a2] = butter(1, [300 500]/(fs/2),'bandpass'); % filter 2
 data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); % apply filter 2 
 hold on
 plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','b');
 
 %% filter exercise 2: change filter order
-figure;
+
 [b1,a1] = butter(1, [100 6000]/(fs/2),'bandpass'); % choose filter (normalize bp freq. to nyquist freq.)
 [b2,a2] = butter(5, [100 6000]/(fs/2),'bandpass');
 
 data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter 1
 data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter 2
 
+figure;
 p1=plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');hold on
 p2=plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r');
 legend([p1(1),p2(1)],'first order','fifth order')
@@ -63,18 +62,25 @@ legend([p1(1),p2(1)],'first order','fifth order')
 % Q: why not always use the highest order?
 %% filter exercise 3: causal vs. acuasal
 
-figure;
+
 [b1,a1] = butter(4, [300 6000]/(fs/2)); % choose filter (normalize bp freq. to nyquist freq.)
 
-data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter 1 in one direction
-data_bp2=filtfilt(b1,a1,data_raw(1:plotlim,:)); %apply filter 1 in both directions
+data_bp_filt=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter 1 in one direction
+data_bp_filtfilt=filtfilt(b1,a1,data_raw(1:plotlim,:)); %apply filter 1 in both directions
 
-p1=plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k-');hold on
-p2=plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r-');hold on
+figure;
+p1=plot(data_bp_filt(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k-');hold on
+p2=plot(data_bp_filtfilt(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r-');hold on
 p3=plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','g-');
 legend([p1(1),p2(1),p3(1)],'filter','filtfilt','raw')
-%%
-data_bp = filtfilt(b1,a1,data_raw(1:plotlim,:));
+%% pick your filter
+
+duration_to_anlyse = 5*60*30000;
+
+[b,a] = butter(1,[300 6000]/(fs/2),'bandpass'); 
+data_bp = filtfilt(b,a,data_raw(1:duration_to_anlyse,:));
+
+%% thresholding
 % find treshold crossings
 threshold=-20;
 crossed= min(data_bp,[],2) < threshold; % trigger if _any_ channel crosses in neg. direction
