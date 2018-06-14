@@ -34,40 +34,41 @@ plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)');
 
 % 4 tetrodes
 
-%% filter 1: change freq band
+%% filter exercise 1: change freq band
 
 figure;
 [b1,a1] = butter(1, [300 6000]/(fs/2),'bandpass'); % filter 1 (normalize bp freq. to nyquist freq.)
-data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); % apply filter 1 in one direction
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); % apply filter 1 
 plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');
 
 
 [b2,a2] = butter(1, [300 500]/(fs/2),'bandpass'); % filter 2
-data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); % apply filter 2 in one direction
+data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); % apply filter 2 
 hold on
 plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','b');
 
-%% filter 2: change filter order
-clf; hold on;
+%% filter exercise 2: change filter order
+figure;
 [b1,a1] = butter(1, [100 6000]/(fs/2),'bandpass'); % choose filter (normalize bp freq. to nyquist freq.)
-[b2,a2] = butter(4, [100 6000]/(fs/2),'bandpass');
+[b2,a2] = butter(5, [100 6000]/(fs/2),'bandpass');
 
-data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
-data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter in one direction
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter 1
+data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter 2
 
-plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');hold on
-plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r');
+p1=plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');hold on
+p2=plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r');
+legend([p1(1),p2(1)],'first order','fifth order')
 
-% plot phase and freq responses of different order butter filters
-% Q: ehy not always use the highest order
-%% filter 3: causal vs. acuasal
 
-clf; hold on;
+% Q: why not always use the highest order?
+%% filter exercise 3: causal vs. acuasal
+
+figure;
 [b1,a1] = butter(4, [300 6000]/(fs/2)); % choose filter (normalize bp freq. to nyquist freq.)
 
-data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
-data_bp2=filtfilt(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
-figure;
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter 1 in one direction
+data_bp2=filtfilt(b1,a1,data_raw(1:plotlim,:)); %apply filter 1 in both directions
+
 p1=plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k-');hold on
 p2=plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r-');hold on
 p3=plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','g-');
