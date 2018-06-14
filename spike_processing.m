@@ -7,7 +7,7 @@ set(0,'DefaultFigureWindowStyle','docked'); % fix matlab's figure positioning bu
 % raw data available on
 % https://drive.google.com/drive/folders/1CwFcErgp3F3D6I2TB_hTtW1JAQB21TAC?usp=sharing
 %
-datapath='/home/jvoigts/Dropbox (MIT)/tenss/tenss_2017_lectures_data/Ringo/2017-06-14_12-56-12/'
+datapath='/Users/mitrajavadzadehno/Documents/tenss2018/Matlab/tenss_example_data/'
 
 
 data_raw=[];
@@ -15,7 +15,7 @@ for ch=[1:4]+12 % grab 4 channels of raw data from one tetrode
     fname=sprintf('100_CH%d.continuous',ch)
     [data, timestamps, info]=load_open_ephys_data_faster(fullfile(datapath,fname));
     data_raw(:,end+1) = data;
-end;
+end
 
 data_raw=data_raw.*info.header.bitVolts;
 fs = info.header.sampleRate;
@@ -28,37 +28,75 @@ plotlim=50000;
 figure(1);
 clf;
 hold on;
-plot(data_raw(1:plotlim,:));
+plot(data_raw(1:plotlim,:)+[1:4]*100);
 
+% 4 tetrodes
 
-%% filter
+%% filter 1: change freq band
 
 clf; hold on;
-[b,a] = butter(3, [300 3000]/(fs/2)); % choose filter (normalize bp freq. to nyquist freq.)
+[b1,a1] = butter(1, [300 6000]/(fs/2),'bandpass'); % choose filter (normalize bp freq. to nyquist freq.)
+[b2,a2] = butter(1, [300 500]/(fs/2),'bandpass');%1000,500
 
-data_bp=filter(b,a,data_raw); %apply filter in one direction
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
+data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter in one direction
 
-plot(data_bp(1:plotlim,:));
+plot(data_bp1(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','k');hold on
+plot(data_bp2(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','b');
 
+%% filter 2: change filter order
+clf; hold on;
+[b1,a1] = butter(1, [100 6000]/(fs/2),'bandpass'); % choose filter (normalize bp freq. to nyquist freq.)
+[b2,a2] = butter(4, [100 6000]/(fs/2),'bandpass');
+
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
+data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter in one direction
+
+plot(data_bp1(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','k');hold on
+plot(data_bp2(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','r');
+
+% plot phase and freq responses of different order butter filters
+% Q: ehy not always use the highest order
+%% filter 3: causal vs. acuasal
+
+clf; hold on;
+[b1,a1] = butter(4, [300 6000]/(fs/2)); % choose filter (normalize bp freq. to nyquist freq.)
+
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
+data_bp2=filtfilt(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
+figure;
+p1=plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k-');hold on
+p2=plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r-');hold on
+p3=plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','g-');
+legend([p1(1),p2(1),p3(1)],'filter','filtfilt','raw')
+%%
+data_bp = filtfilt(b1,a1,data_raw(1:plotlim,:));
 % find treshold crossings
-treshold=20;
-crossed= min(data_bp,[],2)<-treshold; % trigger if _any_ channel crosses in neg. direction
+treshold=-20;
+crossed= min(data_bp,[],2) < treshold; % trigger if _any_ channel crosses in neg. direction
+
 
 spike_onsets=find(diff(crossed)==1);
+
+%figure;plot(data_bp(1:10000,1),'k');hold on;plot(10*crossed(1:10000),'r')
 
 length_sec=size(data,1)/fs;
 fprintf('got %d candidate events in %dmin of data, ~%.2f Hz\n',numel(spike_onsets),round(length_sec/60),numel(spike_onsets)/length_sec);
 
-for i=1:numel(spike_onsets)
-    if(spike_onsets(i)<plotlim)
-        plot([1 1].*spike_onsets(i),[-1 1].*treshold*2,'k--')
-    end;
-end;
-
+figure;
+for sp=1:4
+    for i=1:numel(spike_onsets)
+        if(spike_onsets(i)<plotlim)
+            plot([1 1].*spike_onsets(i),100*sp+[-1 1].*treshold*2,'k-');hold on
+        end
+    end
+    plot(100*sp+data_bp(1:plotlim,sp));
+end
+% make stars, change threshold
 
 %% extract spike waveforms and make some features
 
-spike_window=[1:32]-5; % grab some pre-treshold crossign samples
+spike_window=[1:32]-5; % grab some pre-treshold crossing samples
 
 spikes=[];
 spikes.waveforms=zeros(numel(spike_onsets),4*numel(spike_window)); % pre-allocate memory
@@ -94,7 +132,7 @@ while run
     dat_x=spikes.peakamps(:,projections(use_projection,1));
     dat_y=spikes.peakamps(:,projections(use_projection,2));
     
-    clf; 
+    clf;
     subplot(2,3,1); hold on;% plot median waveform
     plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.2),'g');
     plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.5),'k');
@@ -105,7 +143,7 @@ while run
     
     subplot(2,3,4); hold on;% plot isi distribution
     isi = diff(spikes.times(spikes.cluster==cluster_selected));
-    bins=linspace(0.5,15,20); 
+    bins=linspace(0.5,15,20);
     h= hist(isi,bins); h(end)=0;
     stairs(bins,h);
     title('ISI histogram'); xlabel('isi(ms)');
