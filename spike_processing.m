@@ -11,13 +11,16 @@ datapath='/Users/mitrajavadzadehno/Documents/tenss2018/Matlab/tenss_example_data
 
 
 data_raw=[];
-for ch=[1:4]+12 % grab 4 channels of raw data from one tetrode
-    fname=sprintf('100_CH%d.continuous',ch)
-    [data, timestamps, info]=load_open_ephys_data_faster(fullfile(datapath,fname));
-    data_raw(:,end+1) = data;
+channelid = [13 14 15 16];
+for ch=1:4 % grab 4 channels of raw data from one tetrode
+    fname = sprintf('100_CH%d.continuous',channelid(ch))
+    [data, timestamps, info] = load_open_ephys_data_faster(fullfile(datapath,fname));
+    data_raw(:,ch) = data;
 end
 
-data_raw=data_raw.*info.header.bitVolts;
+size(data_raw)
+
+data_raw = data_raw.*info.header.bitVolts;
 fs = info.header.sampleRate;
 
 %data_raw=data_raw(1:30000,:); % cut away some data for faster testing
@@ -25,24 +28,24 @@ fs = info.header.sampleRate;
 %% plot
 
 plotlim=50000;
-figure(1);
-clf;
+figure;
 hold on;
-plot(data_raw(1:plotlim,:)+[1:4]*100);
+plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)');
 
 % 4 tetrodes
 
 %% filter 1: change freq band
 
-clf; hold on;
-[b1,a1] = butter(1, [300 6000]/(fs/2),'bandpass'); % choose filter (normalize bp freq. to nyquist freq.)
-[b2,a2] = butter(1, [300 500]/(fs/2),'bandpass');%1000,500
+figure;
+[b1,a1] = butter(1, [300 6000]/(fs/2),'bandpass'); % filter 1 (normalize bp freq. to nyquist freq.)
+data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); % apply filter 1 in one direction
+plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');
 
-data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
-data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter in one direction
 
-plot(data_bp1(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','k');hold on
-plot(data_bp2(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','b');
+[b2,a2] = butter(1, [300 500]/(fs/2),'bandpass'); % filter 2
+data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); % apply filter 2 in one direction
+hold on
+plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','b');
 
 %% filter 2: change filter order
 clf; hold on;
@@ -52,8 +55,8 @@ clf; hold on;
 data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter in one direction
 data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter in one direction
 
-plot(data_bp1(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','k');hold on
-plot(data_bp2(1:plotlim,:)+50*repmat([1:4]',1,plotlim)','r');
+plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');hold on
+plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','r');
 
 % plot phase and freq responses of different order butter filters
 % Q: ehy not always use the highest order
@@ -72,8 +75,8 @@ legend([p1(1),p2(1),p3(1)],'filter','filtfilt','raw')
 %%
 data_bp = filtfilt(b1,a1,data_raw(1:plotlim,:));
 % find treshold crossings
-treshold=-20;
-crossed= min(data_bp,[],2) < treshold; % trigger if _any_ channel crosses in neg. direction
+threshold=-20;
+crossed= min(data_bp,[],2) < threshold; % trigger if _any_ channel crosses in neg. direction
 
 
 spike_onsets=find(diff(crossed)==1);
@@ -87,7 +90,7 @@ figure;
 for sp=1:4
     for i=1:numel(spike_onsets)
         if(spike_onsets(i)<plotlim)
-            plot([1 1].*spike_onsets(i),100*sp+[-1 1].*treshold*2,'k-');hold on
+            plot([1 1].*spike_onsets(i),100*sp+[-1 1].*threshold*2,'k-');hold on
         end
     end
     plot(100*sp+data_bp(1:plotlim,sp));
