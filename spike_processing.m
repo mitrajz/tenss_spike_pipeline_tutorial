@@ -54,7 +54,7 @@ plot(data_bp2(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','b');
 %% filter exercise 2: change filter order
 
 [b1,a1] = butter(1, [100 6000]/(fs/2),'bandpass'); % choose filter (normalize bp freq. to nyquist freq.)
-[b2,a2] = butter(5, [100 6000]/(fs/2),'bandpass');
+[b2,a2] = butter(7, [100 6000]/(fs/2),'bandpass');
 
 data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); %apply filter 1
 data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); %apply filter 2
@@ -81,7 +81,7 @@ p3=plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','g-');
 legend([p1(1),p2(1),p3(1)],'filter','filtfilt','raw')
 %% pick your filter
 
-duration_to_anlyse = 5*60*30000;
+duration_to_anlyse = 5*60*fs;
 
 [b,a] = butter(1,[300 6000]/(fs/2),'bandpass'); 
 data_bp = filtfilt(b,a,data_raw(1:duration_to_anlyse,:));
@@ -128,10 +128,10 @@ end
 
 %% plot peak to peak amplitudes
 figure;
-plot(spikes.peakamps(:,2),spikes.peakamps(:,4),'.');
+plot(spikes.peakamps(:,1),spikes.peakamps(:,4),'.');
 daspect([1 1 1]);
 
-%% initialize all cluster assignments to 1
+%% initialize all cluster assignments to 0
 spikes.cluster=zeros(numel(spike_onsets),1);
 
 %% manual spike sorter
