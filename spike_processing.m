@@ -132,49 +132,84 @@ plot(spikes.peakamps(:,2),spikes.peakamps(:,4),'.');
 daspect([1 1 1]);
 
 %% initialize all cluster assignments to 1
-spikes.cluster=ones(numel(spike_onsets),1);
+spikes.cluster=zeros(numel(spike_onsets),1);
 
 %% manual spike sorter
 % cluster 0 shall be the noise cluster (dont plot this one)
+% Commands
+% up/down : cycle through projections
+% 0-9: Select cluster to examine and change
+% + : Draw contour to add to currently selected cluster
+% * : Draw polygon and add all _non-selected_ spikes to noise cluster (0)
+% t : toggle display of currently selected cluster
+
+
 run =1;
 
 projections=[1 2; 1 3; 1 4; 2 3; 2 4; 3 4]; % possible feature projections
-use_projection=1;
+use_projection = 1;
 
-cluster_selected=2; spike_selected=1;
+cluster_selected = 2;  
+spike_selected = 1;
+show_cluster = true(1,10);
+cluster_colors = [[0,0,0]; hsv(9)];
 
 while run
-    dat_x=spikes.peakamps(:,projections(use_projection,1));
-    dat_y=spikes.peakamps(:,projections(use_projection,2));
+    
+    dat_x = spikes.peakamps(:,projections(use_projection,1));
+    dat_y = spikes.peakamps(:,projections(use_projection,2));
     
     clf;
-    subplot(2,3,1); hold on;% plot median waveform
-    plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.2),'g');
-    plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.5),'k');
-    plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.8),'g');
-    plot(spikes.waveforms(spike_selected,:),'r'); % also plot currently selected spike waveform
+    subplot(2,3,1); hold on; % plot median waveform
+    plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.5),'k', 'Linewidth',2);
+    plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.8),'k--');
+    plot(quantile(spikes.waveforms(spikes.cluster==cluster_selected,:),.2),'k--');
+    
+    
+    plot(spikes.waveforms(spike_selected,:),'r', 'Linewidth',2); % also plot currently selected spike waveform
     
     title('waveforms from cluster');
     
-    subplot(2,3,4); hold on;% plot isi distribution
+    subplot(2,3,4); hold on; %  plot isi distribution
     isi = diff(spikes.times(spikes.cluster==cluster_selected));
-    bins=linspace(0.5,15,20);
+    bins = linspace(0,100,50);
     h= hist(isi,bins); h(end)=0;
-    stairs(bins,h);
+    stairs(bins,h, 'k-', 'linewidth',2);
     title('ISI histogram'); xlabel('isi(ms)');
     
     ax=subplot(2,3,[2 3 5 6]); hold on; % plot main feature display
-    ii=spikes.cluster>0; % dont plot noise cluster
-    scatter(dat_x(ii),dat_y(ii),(0.5+(spikes.cluster(ii)==cluster_selected))*20,spikes.cluster(ii)*2,'filled');
+    
+    %b_show = ones(size(spikes.cluster));
+    %ii = spikes.cluster > 0; %  plot noise cluster
+    ii = true(size(spikes.cluster));
+    for i = 1:numel(show_cluster) % remove hidden units
+        if ~show_cluster(i)
+           ii(spikes.cluster == i - 1)  =  false;
+        end
+    end
+    scatter(dat_x(ii), dat_y(ii), (0.5+(spikes.cluster(ii)==cluster_selected))*20, cluster_colors(spikes.cluster(ii)+1, :), 'filled');
     plot(dat_x(spike_selected),dat_y(spike_selected),'ro','markerSize',10);
-    title(sprintf('current cluster %d, projection %d, %d spikes in cluster',cluster_selected,use_projection,sum(spikes.cluster==cluster_selected)));
+    xl = xlim(gca);
+    dot_x = linspace(xl(1), xl(end),10);
+    dot_y = zeros(size(dot_x));
+    scatter(dot_x(show_cluster), dot_y(show_cluster), 100 * ones(size(dot_x(show_cluster))), cluster_colors(show_cluster, :), 'filled','d');
+    title(sprintf('current cluster %d, projection %d, %d spikes in cluster', cluster_selected, use_projection, sum(spikes.cluster==cluster_selected)));
     
     [x,y,b]=ginput(1);
     
     if b>47 & b <58 % number keys, cluster select
         cluster_selected=b-48;
-    end;
+    end
     
+    % Toggle showing a cluster
+    if b == 116
+        if show_cluster(cluster_selected + 1) 
+             show_cluster(cluster_selected + 1)  = false;
+        else
+             show_cluster(cluster_selected + 1)  = true;
+        end
+   
+    end
     if b==30; use_projection=mod(use_projection,6)+1; end; % up/down: cycle trough projections
     if b==31; use_projection=mod(use_projection-2,6)+1; end; % up/down: cycle trough projections
     if b==27; disp('exited'); run=0; end; % esc: exit
