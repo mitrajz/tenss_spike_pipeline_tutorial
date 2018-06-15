@@ -26,20 +26,26 @@ fs = info.header.sampleRate;
 %% plot
 
 plotlim=50000;
+
+% 1 electrode
 figure;
-hold on;
+plot(data_raw(1:plotlim,:));
+
+% tetrodes
+figure;
 plot(data_raw(1:plotlim,:)+100*repmat([1:4]',1,plotlim)');
 
-% 4 tetrodes
+
 
 %% filter exercise 1: change freq band
 
 
 [b1,a1] = butter(1, [300 6000]/(fs/2),'bandpass'); % filter 1 (normalize bp freq. to nyquist freq.)
 data_bp1=filter(b1,a1,data_raw(1:plotlim,:)); % apply filter 1 
+figure;
 plot(data_bp1(1:plotlim,:)+100*repmat([1:4]',1,plotlim)','k');
 
-figure;
+
 [b2,a2] = butter(1, [300 500]/(fs/2),'bandpass'); % filter 2
 data_bp2=filter(b2,a2,data_raw(1:plotlim,:)); % apply filter 2 
 hold on
@@ -85,24 +91,23 @@ data_bp = filtfilt(b,a,data_raw(1:duration_to_anlyse,:));
 threshold=-20;
 crossed= min(data_bp,[],2) < threshold; % trigger if _any_ channel crosses in neg. direction
 
-
 spike_onsets=find(diff(crossed)==1);
 
 %figure;plot(data_bp(1:10000,1),'k');hold on;plot(10*crossed(1:10000),'r')
 
-length_sec=size(data,1)/fs;
+length_sec=duration_to_anlyse/fs;
 fprintf('got %d candidate events in %dmin of data, ~%.2f Hz\n',numel(spike_onsets),round(length_sec/60),numel(spike_onsets)/length_sec);
 
 figure;
-for sp=1:4
+for ch=1:4
     for i=1:numel(spike_onsets)
         if(spike_onsets(i)<plotlim)
-            plot([1 1].*spike_onsets(i),100*sp+[-1 1].*threshold*2,'k-');hold on
+            plot([1 1].*spike_onsets(i),100*ch+[-1 1].*threshold*2,'k-');hold on
         end
     end
-    plot(100*sp+data_bp(1:plotlim,sp));
+    plot(100*ch+data_bp(1:plotlim,ch));
 end
-% make stars, change threshold
+%  change threshold
 
 %% extract spike waveforms and make some features
 
@@ -118,11 +123,11 @@ for i=1:numel(spike_onsets)
     
     spikes.waveforms(i,:)= this_spike(:);% grab entire waveform
     spikes.peakamps(i,:)=min(this_spike); % grab 4 peak amplitudes
-end;
+end
 
 
 %% plot peak to peak amplitudes
-clf; hold on;
+figure;
 plot(spikes.peakamps(:,2),spikes.peakamps(:,4),'.');
 daspect([1 1 1]);
 
